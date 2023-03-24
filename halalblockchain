@@ -1,0 +1,34 @@
+pragma solidity ^0.8.0;
+
+contract HalalCertificate {
+    struct Certificate {
+        address issuer;
+        address recipient;
+        string certificateHash;
+        bool isRevoked;
+    }
+
+    mapping(address => Certificate[]) private certificates;
+
+    event CertificateIssued(address issuer, address recipient, string certificateHash);
+    event CertificateRevoked(address issuer, address recipient, string certificateHash);
+
+    function issueCertificate(address recipient, string memory certificateHash) public {
+        Certificate memory newCertificate = Certificate(msg.sender, recipient, certificateHash, false);
+        certificates[recipient].push(newCertificate);
+        emit CertificateIssued(msg.sender, recipient, certificateHash);
+    }
+
+    function revokeCertificate(address recipient, uint256 certificateIndex) public {
+        require(certificateIndex < certificates[recipient].length, "Certificate not found");
+        require(certificates[recipient][certificateIndex].issuer == msg.sender, "Only issuer can revoke certificate");
+        require(!certificates[recipient][certificateIndex].isRevoked, "Certificate already revoked");
+
+        certificates[recipient][certificateIndex].isRevoked = true;
+        emit CertificateRevoked(msg.sender, recipient, certificates[recipient][certificateIndex].certificateHash);
+    }
+
+    function getCertificates(address recipient) public view returns (Certificate[] memory) {
+        return certificates[recipient];
+    }
+}
